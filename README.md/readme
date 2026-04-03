@@ -1,0 +1,30 @@
+# Solar Energy Prediction System
+
+## Overview
+
+This project predicts solar power generation using machine learning (XGBoost) and provides a backend API using FastAPI.
+
+## Features
+
+* Solar power prediction
+* User authentication (signup/login)
+* Stores prediction history
+* Efficiency calculation
+
+## Tech Stack
+
+* Python
+* XGBoost
+* FastAPI
+* SQLite
+
+## How to Run
+
+1. Install dependencies:
+   pip install -r requirements.txt
+
+2. Run backend:
+   uvicorn app:app --reload
+
+3. Open API docs:
+   http://127.0.0.1:8000/docs
