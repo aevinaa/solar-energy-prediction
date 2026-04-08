@@ -25,6 +25,17 @@ CREATE TABLE IF NOT EXISTS predictions (
 )
 """)
 
+#FORECASTS TABLE
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS forecasts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    location TEXT,
+    date TEXT,
+    predicted_power REAL
+)
+""")
+
 conn.commit()
 conn.close()
 
