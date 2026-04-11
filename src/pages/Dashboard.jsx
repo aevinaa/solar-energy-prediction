@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Sun, ChevronDown, LogOut, User, Settings,
   MapPin, Zap, Upload, BarChart2, ArrowRight,
-  FileText, X,
+  FileText, X, Thermometer, Clock, Activity,
 } from "lucide-react";
 
 const C = {
@@ -31,36 +31,55 @@ export default function Dashboard() {
   const [firstTime,   setFirstTime]   = useState(isFirstVisit());
   const [mode,        setMode]        = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [form,        setForm]        = useState({ location:"", plantSize:"", file:null });
-  const [fileName,    setFileName]    = useState("");
   const [submitted,   setSubmitted]   = useState(false);
   const profileRef = useRef(null);
 
+  // Mode 1 — instant prediction fields
+  const [instantForm, setInstantForm] = useState({
+    radiation:     "",
+    temperature:   "",
+    time:          "",
+    previousPower: "",
+  });
+
+  // Mode 2 — 5-day forecast fields
+  const [forecastForm, setForecastForm] = useState({
+    location:  "",
+    plantSize: "",
+  });
+
   useEffect(() => {
-    const h = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false); };
+    const h = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target))
+        setProfileOpen(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
   const selectMode = (m) => {
     setMode(m);
+    setSubmitted(false);
     if (firstTime) { markVisited(); setFirstTime(false); }
-  };
-
-  const handleFileChange = (e) => {
-    const f = e.target.files[0];
-    if (f) { setForm(p => ({ ...p, file:f })); setFileName(f.name); }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // TODO: connect to backend API
+    // Mode 1: POST instantForm to /api/predict-instant
+    // Mode 2: POST forecastForm to /api/predict-forecast
     setSubmitted(true);
   };
 
   const reset = () => {
-    setMode(null); setSubmitted(false);
-    setForm({ location:"", plantSize:"", file:null }); setFileName("");
+    setMode(null);
+    setSubmitted(false);
+    setInstantForm({ radiation:"", temperature:"", time:"", previousPower:"" });
+    setForecastForm({ location:"", plantSize:"" });
   };
+
+  const updateInstant  = (field) => (e) => setInstantForm(p  => ({...p,  [field]: e.target.value}));
+  const updateForecast = (field) => (e) => setForecastForm(p => ({...p, [field]: e.target.value}));
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg, color:C.cream, fontFamily:"'Outfit', sans-serif", position:"relative", overflowX:"hidden" }}>
@@ -68,12 +87,8 @@ export default function Dashboard() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
-        @keyframes fade-up {
-          from { opacity:0; transform:translateY(18px); }
-          to   { opacity:1; transform:translateY(0);    }
-        }
+        @keyframes fade-up  { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
         @keyframes fade-in  { from { opacity:0; } to { opacity:1; } }
-        @keyframes slow-spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         @keyframes pulse-soft {
           0%,100% { opacity:0.5; transform:scale(1);    }
           50%      { opacity:0.9; transform:scale(1.04); }
@@ -83,7 +98,6 @@ export default function Dashboard() {
           50%      { opacity:0.32; }
         }
 
-        /* subtle dot-grid background */
         .dot-grid {
           position:fixed; inset:0; z-index:0; pointer-events:none;
           background-image: radial-gradient(rgba(245,166,35,0.10) 1px, transparent 1px);
@@ -165,20 +179,6 @@ export default function Dashboard() {
         .drop-item:hover { background:rgba(245,166,35,0.07); color:${C.cream}; }
         .drop-item.danger:hover { background:rgba(255,80,80,0.08); color:#ff7070; }
 
-        .upload-zone {
-          border:2px dashed rgba(245,166,35,0.25);
-          border-radius:14px; padding:28px;
-          text-align:center; cursor:pointer;
-          transition:all 0.22s;
-          background:rgba(245,166,35,0.02);
-          display:block;
-        }
-        .upload-zone:hover {
-          border-color:rgba(245,166,35,0.5);
-          background:rgba(245,166,35,0.05);
-        }
-
-        /* stat mini-cards in top bar */
         .stat-pill {
           display:flex; align-items:center; gap:10px;
           background:rgba(245,166,35,0.05);
@@ -187,81 +187,38 @@ export default function Dashboard() {
           transition:border-color 0.2s;
         }
         .stat-pill:hover { border-color:${C.borderHover}; }
+
+        /* two-column grid for mode 1 inputs */
+        .input-grid {
+          display:grid;
+          grid-template-columns:1fr 1fr;
+          gap:18px;
+        }
+        @media(max-width:540px) {
+          .input-grid { grid-template-columns:1fr; }
+        }
       `}</style>
 
-      {/* ══════════════════════════════════════════
-           BACKGROUND LAYERS (purely decorative)
-        ══════════════════════════════════════════ */}
-
-      {/* Dot grid */}
+      {/* ── Background layers ── */}
       <div className="dot-grid" />
+      {/* Removed right-side decorative ball */}
+      <div style={{ position:"fixed", bottom:"-5%", left:"-5%", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle, rgba(255,104,53,0.05) 0%, transparent 65%)", pointerEvents:"none", zIndex:0 }} />
 
-      {/* Large amber glow — top right */}
-      <div style={{
-        position:"fixed", top:"-10%", right:"-5%",
-        width:700, height:700, borderRadius:"50%",
-        background:"radial-gradient(circle, rgba(245,166,35,0.06) 0%, transparent 65%)",
-        pointerEvents:"none", zIndex:0,
-      }} />
+      {/* Removed decorative solar ring cluster */}
 
-      {/* Orange accent glow — bottom left */}
-      <div style={{
-        position:"fixed", bottom:"-5%", left:"-5%",
-        width:500, height:500, borderRadius:"50%",
-        background:"radial-gradient(circle, rgba(255,104,53,0.05) 0%, transparent 65%)",
-        pointerEvents:"none", zIndex:0,
-      }} />
-
-      {/* Decorative solar ring cluster — top right corner */}
-      <div style={{ position:"fixed", top:"8%", right:"3%", pointerEvents:"none", zIndex:0, opacity:0.7 }}>
-        {[60, 100, 140, 180].map((r, i) => (
-          <div key={r} style={{
-            position:"absolute", top:"50%", left:"50%",
-            width:r*2, height:r*2,
-            transform:"translate(-50%,-50%)",
-            borderRadius:"50%",
-            border:`1px solid rgba(245,166,35,${0.10 - i*0.018})`,
-            animation:`grid-drift ${3+i*0.8}s ease-in-out infinite`,
-            animationDelay:`${i*0.4}s`,
-          }} />
-        ))}
-        {/* Removed tiny sun orb at centre */}
-      </div>
-
-      {/* Thin diagonal accent lines */}
+      {/* Vertical accent lines */}
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, overflow:"hidden" }}>
-        {[15, 35, 55, 75].map((pct, i) => (
-          <div key={i} style={{
-            position:"absolute",
-            top:0, left:`${pct}%`,
-            width:1, height:"100%",
-            background:`linear-gradient(180deg, transparent, rgba(245,166,35,${0.04 - i*0.005}), transparent)`,
-          }} />
+        {[15,35,55,75].map((pct,i) => (
+          <div key={i} style={{ position:"absolute", top:0, left:`${pct}%`, width:1, height:"100%", background:`linear-gradient(180deg, transparent, rgba(245,166,35,${0.04-i*0.005}), transparent)` }} />
         ))}
       </div>
 
-      {/* Everything above bg layers */}
       <div style={{ position:"relative", zIndex:1 }}>
 
-        {/* ══════════════════════════════════════════
-             NAVBAR
-          ══════════════════════════════════════════ */}
-        <nav style={{
-          position:"sticky", top:0, zIndex:100,
-          height:"68px", display:"flex", alignItems:"center",
-          justifyContent:"space-between", padding:"0 5%",
-          background:"rgba(10,10,7,0.85)",
-          backdropFilter:"blur(24px)",
-          borderBottom:`1px solid ${C.border}`,
-        }}>
-          {/* Logo */}
+        {/* ── NAVBAR ── */}
+        <nav style={{ position:"sticky", top:0, zIndex:100, height:"68px", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 5%", background:"rgba(10,10,7,0.85)", backdropFilter:"blur(24px)", borderBottom:`1px solid ${C.border}` }}>
           <div style={{ display:"flex", alignItems:"center", gap:"10px", cursor:"pointer" }} onClick={() => navigate("/dashboard")}>
-            <div style={{
-              width:34, height:34, borderRadius:"50%",
-              background:`radial-gradient(circle at 40% 35%, #FFE580, ${C.amber} 55%, ${C.orange})`,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              boxShadow:`0 0 16px rgba(245,166,35,0.4)`,
-            }}>
+            <div style={{ width:34, height:34, borderRadius:"50%", background:`radial-gradient(circle at 40% 35%, #FFE580, ${C.amber} 55%, ${C.orange})`, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:`0 0 16px rgba(245,166,35,0.4)` }}>
               <Sun size={16} color={C.bg} strokeWidth={2.5} />
             </div>
             <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"17px" }}>
@@ -269,41 +226,20 @@ export default function Dashboard() {
             </span>
           </div>
 
-          {/* Nav links */}
           <div style={{ display:"flex", gap:"28px" }}>
             {[{label:"Dashboard",active:true},{label:"History",active:false},{label:"Settings",active:false}].map(l => (
-              <span key={l.label} style={{
-                fontSize:"14px", fontWeight:500, cursor:"pointer",
-                color: l.active ? C.cream : C.muted,
-                borderBottom: l.active ? `2px solid ${C.amber}` : "2px solid transparent",
-                paddingBottom:"4px", transition:"color 0.2s",
-              }}>{l.label}</span>
+              <span key={l.label} style={{ fontSize:"14px", fontWeight:500, cursor:"pointer", color:l.active?C.cream:C.muted, borderBottom:l.active?`2px solid ${C.amber}`:"2px solid transparent", paddingBottom:"4px", transition:"color 0.2s" }}>{l.label}</span>
             ))}
           </div>
 
-          {/* Profile */}
           <div ref={profileRef} style={{ position:"relative" }}>
-            <button
-              onClick={() => setProfileOpen(p => !p)}
-              style={{
-                display:"flex", alignItems:"center", gap:"10px",
-                background:"rgba(245,166,35,0.06)",
-                border:`1px solid ${C.border}`,
-                borderRadius:"100px", padding:"6px 14px 6px 6px",
-                cursor:"pointer", transition:"all 0.2s",
-                color:C.cream, fontFamily:"'Outfit',sans-serif",
-              }}
+            <button onClick={() => setProfileOpen(p => !p)} style={{ display:"flex", alignItems:"center", gap:"10px", background:"rgba(245,166,35,0.06)", border:`1px solid ${C.border}`, borderRadius:"100px", padding:"6px 14px 6px 6px", cursor:"pointer", transition:"all 0.2s", color:C.cream, fontFamily:"'Outfit',sans-serif" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor=C.borderHover; e.currentTarget.style.background="rgba(245,166,35,0.10)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor=C.border;      e.currentTarget.style.background="rgba(245,166,35,0.06)"; }}
             >
-              <div style={{
-                width:30, height:30, borderRadius:"50%",
-                background:`linear-gradient(135deg, ${C.amber}, ${C.orange})`,
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"12px", fontWeight:700, color:C.bg,
-              }}>{FAKE_USER.initials}</div>
+              <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg, ${C.amber}, ${C.orange})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", fontWeight:700, color:C.bg }}>{FAKE_USER.initials}</div>
               <span style={{ fontSize:"14px", fontWeight:500 }}>{FAKE_USER.name.split(" ")[0]}</span>
-              <ChevronDown size={14} color={C.muted} style={{ transition:"transform 0.2s", transform: profileOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+              <ChevronDown size={14} color={C.muted} style={{ transition:"transform 0.2s", transform:profileOpen?"rotate(180deg)":"rotate(0deg)" }} />
             </button>
 
             {profileOpen && (
@@ -322,48 +258,31 @@ export default function Dashboard() {
           </div>
         </nav>
 
-        {/* ══════════════════════════════════════════
-             MAIN
-          ══════════════════════════════════════════ */}
+        {/* ── MAIN ── */}
         <main style={{ padding:"60px 5%", maxWidth:1100, margin:"0 auto" }}>
 
-          {/* ── Greeting ── */}
+          {/* Greeting */}
           <div style={{ marginBottom:"48px", animation:"fade-up 0.6s ease-out both" }}>
-            <div style={{
-              display:"inline-block",
-              background:"rgba(245,166,35,0.09)",
-              border:`1px solid rgba(245,166,35,0.22)`,
-              color:C.amber, fontSize:"11px", fontWeight:600,
-              letterSpacing:"0.12em", textTransform:"uppercase",
-              padding:"6px 14px", borderRadius:"100px", marginBottom:"16px",
-            }}>
+            <div style={{ display:"inline-block", background:"rgba(245,166,35,0.09)", border:`1px solid rgba(245,166,35,0.22)`, color:C.amber, fontSize:"11px", fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", padding:"6px 14px", borderRadius:"100px", marginBottom:"16px" }}>
               {firstTime ? "Welcome to SunInsight" : "Welcome back"}
             </div>
-
-            <h1 style={{
-              fontFamily:"'Syne',sans-serif", fontWeight:800,
-              fontSize:"clamp(28px, 4vw, 52px)",
-              lineHeight:1.08, marginBottom:"14px",
-            }}>
+            <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(28px, 4vw, 52px)", lineHeight:1.08, marginBottom:"14px" }}>
               {firstTime
                 ? <>{`Let's get you started,`}<br /><span style={{ color:C.amber }}>{FAKE_USER.name.split(" ")[0]}.</span></>
                 : <>Your predictions,<br /><span style={{ color:C.amber }}>{FAKE_USER.name.split(" ")[0]}.</span></>
               }
             </h1>
             <p style={{ color:C.muted, fontSize:"16px", maxWidth:480, lineHeight:1.75 }}>
-              {firstTime
-                ? "Choose how you'd like to generate your solar forecast below."
-                : "Run a new forecast or pick up where you left off."
-              }
+              {firstTime ? "Choose a prediction mode below to get started." : "Run a new prediction or pick up where you left off."}
             </p>
           </div>
 
-          {/* ── Mini stat pills row ── */}
+          {/* Stat pills */}
           <div style={{ display:"flex", gap:"14px", marginBottom:"52px", flexWrap:"wrap", animation:"fade-up 0.6s 0.1s ease-out both" }}>
             {[
-              { label:"Forecast Model", value:"Active", color:C.green   },
-              { label:"Mode",           value: mode ? (mode === "simple" ? "Quick" : "Dataset") : "Not selected", color:C.amber   },
-              { label:"Status",         value: submitted ? "Submitted" : "Ready", color: submitted ? C.green : C.muted },
+              { label:"Model",  value:"Active",    color:C.green },
+              { label:"Mode",   value: mode ? (mode==="instant" ? "Instant" : "5-Day Forecast") : "Not selected", color:C.amber },
+              { label:"Status", value: submitted ? "Submitted" : "Ready", color: submitted ? C.green : C.muted },
             ].map(s => (
               <div key={s.label} className="stat-pill">
                 <div style={{ width:7, height:7, borderRadius:"50%", background:s.color, boxShadow:`0 0 7px ${s.color}`, flexShrink:0 }} />
@@ -373,84 +292,70 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* ── Mode selection + form ── */}
+          {/* Mode selection + form */}
           {!submitted && (
             <>
               <div style={{ marginBottom:"24px" }}>
-                <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"18px", marginBottom:"6px" }}>
-                  Select a forecast mode
-                </h2>
+                <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"18px", marginBottom:"6px" }}>Select a prediction mode</h2>
                 <p style={{ color:C.muted, fontSize:"14px" }}>Pick one — you can switch anytime.</p>
               </div>
 
               <div style={{ display:"flex", gap:"18px", marginBottom:"36px", flexWrap:"wrap" }}>
 
-                {/* Mode 1 */}
-                <div className={`mode-card${mode === "simple" ? " selected" : ""}`} onClick={() => selectMode("simple")}>
-                  {mode === "simple" && (
-                    <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"55%", height:"2px", background:`linear-gradient(90deg, transparent, ${C.amber}, transparent)` }} />
-                  )}
-                  {/* Decorative corner rings */}
+                {/* ── MODE 1 — Instant Prediction ── */}
+                <div className={`mode-card${mode==="instant"?" selected":""}`} onClick={() => selectMode("instant")}>
+                  {mode==="instant" && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"55%", height:"2px", background:`linear-gradient(90deg, transparent, ${C.amber}, transparent)` }} />}
                   <div style={{ position:"absolute", top:-40, right:-40, width:120, height:120, borderRadius:"50%", border:`1px solid rgba(245,166,35,0.08)`, pointerEvents:"none" }} />
                   <div style={{ position:"absolute", top:-20, right:-20, width:80,  height:80,  borderRadius:"50%", border:`1px solid rgba(245,166,35,0.06)`, pointerEvents:"none" }} />
 
                   <div style={{ width:52, height:52, borderRadius:"14px", background:"rgba(245,166,35,0.09)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"20px" }}>
-                    <MapPin size={24} color={C.amber} />
+                    <Activity size={24} color={C.amber} />
                   </div>
                   <div style={{ display:"inline-block", background:"rgba(245,166,35,0.09)", border:`1px solid rgba(245,166,35,0.2)`, color:C.amber, fontSize:"11px", fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", padding:"4px 12px", borderRadius:"100px", marginBottom:"14px" }}>
                     Mode 1
                   </div>
-                  <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"19px", marginBottom:"10px", color:C.cream }}>Quick Forecast</h3>
-                  <p style={{ color:C.muted, fontSize:"14px", lineHeight:1.75 }}>Enter your location and plant size. Our model uses weather data to predict your solar generation.</p>
+                  <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"19px", marginBottom:"10px", color:C.cream }}>Instant Prediction</h3>
+                  <p style={{ color:C.muted, fontSize:"14px", lineHeight:1.75 }}>
+                    Enter radiation, temperature, time and previous power. Get a predicted output for that exact moment — no weather API used.
+                  </p>
                   <div style={{ marginTop:"20px", fontSize:"13px", fontWeight:600, color:C.amber }}>
-                    {mode === "simple" ? "Selected ✓" : "Select →"}
+                    {mode==="instant" ? "Selected ✓" : "Select →"}
                   </div>
                 </div>
 
-                {/* Mode 2 */}
-                <div className={`mode-card${mode === "dataset" ? " selected" : ""}`} onClick={() => selectMode("dataset")}>
-                  {mode === "dataset" && (
-                    <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"55%", height:"2px", background:`linear-gradient(90deg, transparent, ${C.amber}, transparent)` }} />
-                  )}
+                {/* ── MODE 2 — 5-Day Forecast ── */}
+                <div className={`mode-card${mode==="forecast"?" selected":""}`} onClick={() => selectMode("forecast")}>
+                  {mode==="forecast" && <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"55%", height:"2px", background:`linear-gradient(90deg, transparent, ${C.amber}, transparent)` }} />}
                   <div style={{ position:"absolute", top:-40, right:-40, width:120, height:120, borderRadius:"50%", border:`1px solid rgba(245,166,35,0.08)`, pointerEvents:"none" }} />
                   <div style={{ position:"absolute", top:-20, right:-20, width:80,  height:80,  borderRadius:"50%", border:`1px solid rgba(245,166,35,0.06)`, pointerEvents:"none" }} />
 
                   <div style={{ width:52, height:52, borderRadius:"14px", background:"rgba(245,166,35,0.09)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:"20px" }}>
-                    <Upload size={24} color={C.amber} />
+                    <BarChart2 size={24} color={C.amber} />
                   </div>
                   <div style={{ display:"inline-block", background:"rgba(245,166,35,0.09)", border:`1px solid rgba(245,166,35,0.2)`, color:C.amber, fontSize:"11px", fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", padding:"4px 12px", borderRadius:"100px", marginBottom:"14px" }}>
                     Mode 2
                   </div>
-                  <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"19px", marginBottom:"10px", color:C.cream }}>Dataset Forecast</h3>
-                  <p style={{ color:C.muted, fontSize:"14px", lineHeight:1.75 }}>Upload your own historical dataset alongside location and plant size for a more personalised prediction.</p>
+                  <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"19px", marginBottom:"10px", color:C.cream }}>5-Day Forecast</h3>
+                  <p style={{ color:C.muted, fontSize:"14px", lineHeight:1.75 }}>
+                    Enter your location and plant size. We fetch live weather data and predict your solar generation for the next 5 days.
+                  </p>
                   <div style={{ marginTop:"20px", fontSize:"13px", fontWeight:600, color:C.amber }}>
-                    {mode === "dataset" ? "Selected ✓" : "Select →"}
+                    {mode==="forecast" ? "Selected ✓" : "Select →"}
                   </div>
                 </div>
 
               </div>
 
-              {/* ── Form ── */}
+              {/* ── FORM ── */}
               {mode && (
-                <div style={{
-                  background:C.card,
-                  border:`1px solid ${C.border}`,
-                  borderRadius:"22px",
-                  padding:"40px",
-                  animation:"fade-up 0.4s ease-out both",
-                  maxWidth:580,
-                  position:"relative", overflow:"hidden",
-                }}>
-                  {/* Decorative corner ring inside form card */}
+                <div style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:"22px", padding:"40px", animation:"fade-up 0.4s ease-out both", maxWidth:600, position:"relative", overflow:"hidden" }}>
                   <div style={{ position:"absolute", bottom:-60, right:-60, width:200, height:200, borderRadius:"50%", border:`1px solid rgba(245,166,35,0.07)`, pointerEvents:"none" }} />
                   <div style={{ position:"absolute", bottom:-30, right:-30, width:130, height:130, borderRadius:"50%", border:`1px solid rgba(245,166,35,0.05)`, pointerEvents:"none" }} />
-
-                  {/* Amber top accent */}
                   <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"40%", height:"2px", background:`linear-gradient(90deg, transparent, ${C.amber}, transparent)` }} />
 
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"28px" }}>
                     <h3 style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"20px" }}>
-                      {mode === "simple" ? "Quick Forecast" : "Dataset Forecast"}
+                      {mode==="instant" ? "Instant Prediction" : "5-Day Forecast"}
                     </h3>
                     <button onClick={reset} style={{ background:"none", border:"none", cursor:"pointer", color:C.mutedDark, display:"flex", alignItems:"center", gap:"5px", fontSize:"13px", fontFamily:"'Outfit',sans-serif" }}>
                       <X size={14} /> Change mode
@@ -459,50 +364,90 @@ export default function Dashboard() {
 
                   <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:"20px" }}>
 
-                    {/* Location */}
-                    <div>
-                      <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>Location</label>
-                      <div style={{ position:"relative" }}>
-                        <MapPin size={16} color={C.mutedDark} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
-                        <input className="dash-input" style={{ paddingLeft:"40px" }} type="text" placeholder="e.g. Chennai, Tamil Nadu" value={form.location} onChange={e => setForm(p => ({...p, location:e.target.value}))} required />
-                      </div>
-                    </div>
+                    {/* ── MODE 1 FIELDS ── */}
+                    {mode === "instant" && (
+                      <>
+                        <div className="input-grid">
 
-                    {/* Plant size */}
-                    <div>
-                      <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>Plant Size (kW)</label>
-                      <div style={{ position:"relative" }}>
-                        <Zap size={16} color={C.mutedDark} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
-                        <input className="dash-input" style={{ paddingLeft:"40px" }} type="number" min="0.1" step="0.1" placeholder="e.g. 5.0" value={form.plantSize} onChange={e => setForm(p => ({...p, plantSize:e.target.value}))} required />
-                      </div>
-                    </div>
-
-                    {/* Dataset upload — mode 2 only */}
-                    {mode === "dataset" && (
-                      <div>
-                        <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>Upload Dataset (CSV)</label>
-                        <label className="upload-zone" htmlFor="file-upload">
-                          {fileName ? (
-                            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"10px" }}>
-                              <FileText size={20} color={C.amber} />
-                              <span style={{ fontSize:"14px", color:C.cream, fontWeight:500 }}>{fileName}</span>
-                              <span style={{ fontSize:"12px", color:C.green }}>✓ Ready</span>
+                          {/* Radiation */}
+                          <div>
+                            <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>
+                              Solar Radiation (W/m²)
+                            </label>
+                            <div style={{ position:"relative" }}>
+                              <Sun size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+                              <input className="dash-input" style={{ paddingLeft:"38px" }} type="number" step="0.01" placeholder="e.g. 850.5" value={instantForm.radiation} onChange={updateInstant("radiation")} required />
                             </div>
-                          ) : (
-                            <>
-                              <Upload size={24} color={C.mutedDark} style={{ margin:"0 auto 10px" }} />
-                              <div style={{ fontSize:"14px", color:C.muted }}>Click to upload or drag and drop</div>
-                              <div style={{ fontSize:"12px", color:C.mutedDark, marginTop:"4px" }}>CSV files only</div>
-                            </>
-                          )}
-                        </label>
-                        <input id="file-upload" type="file" accept=".csv" style={{ display:"none" }} onChange={handleFileChange} />
-                      </div>
+                          </div>
+
+                          {/* Temperature */}
+                          <div>
+                            <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>
+                              Temperature (°C)
+                            </label>
+                            <div style={{ position:"relative" }}>
+                              <Thermometer size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+                              <input className="dash-input" style={{ paddingLeft:"38px" }} type="number" step="0.1" placeholder="e.g. 32.5" value={instantForm.temperature} onChange={updateInstant("temperature")} required />
+                            </div>
+                          </div>
+
+                          {/* Time */}
+                          <div>
+                            <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>
+                              Time
+                            </label>
+                            <div style={{ position:"relative" }}>
+                              <Clock size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+                              <input className="dash-input" style={{ paddingLeft:"38px" }} type="time" value={instantForm.time} onChange={updateInstant("time")} required />
+                            </div>
+                          </div>
+
+                          {/* Previous Power */}
+                          <div>
+                            <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>
+                              Previous Power (kW)
+                            </label>
+                            <div style={{ position:"relative" }}>
+                              <Zap size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+                              <input className="dash-input" style={{ paddingLeft:"38px" }} type="number" step="0.01" placeholder="e.g. 3.2" value={instantForm.previousPower} onChange={updateInstant("previousPower")} required />
+                            </div>
+                          </div>
+
+                        </div>
+
+                        {/* Note removed for instant mode */}
+                      </>
                     )}
 
-                    <button type="submit" className="dash-btn" style={{ alignSelf:"flex-start", marginTop:"6px" }}>
-                      Generate Forecast <ArrowRight size={16} />
+                    {/* ── MODE 2 FIELDS ── */}
+                    {mode === "forecast" && (
+                      <>
+                        {/* Location */}
+                        <div>
+                          <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>Location</label>
+                          <div style={{ position:"relative" }}>
+                            <MapPin size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+                            <input className="dash-input" style={{ paddingLeft:"38px" }} type="text" placeholder="e.g. Chennai, Tamil Nadu" value={forecastForm.location} onChange={updateForecast("location")} required />
+                          </div>
+                        </div>
+
+                        {/* Plant size */}
+                        <div>
+                          <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>Plant Size (kW)</label>
+                          <div style={{ position:"relative" }}>
+                            <Zap size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+                            <input className="dash-input" style={{ paddingLeft:"38px" }} type="number" min="0.1" step="0.1" placeholder="e.g. 5.0" value={forecastForm.plantSize} onChange={updateForecast("plantSize")} required />
+                          </div>
+                        </div>
+
+                        {/* Note removed for forecast mode */}
+                      </>
+                    )}
+
+                    <button type="submit" className="dash-btn" style={{ alignSelf:"flex-start", marginTop:"4px" }}>
+                      {mode==="instant" ? "Predict Now" : "Generate 5-Day Forecast"} <ArrowRight size={16} />
                     </button>
+
                   </form>
                 </div>
               )}
@@ -511,18 +456,8 @@ export default function Dashboard() {
 
           {/* ── Submitted state ── */}
           {submitted && (
-            <div style={{
-              background:C.card,
-              border:`1px solid ${C.borderHover}`,
-              borderRadius:"22px",
-              padding:"52px 40px",
-              textAlign:"center",
-              maxWidth:560,
-              animation:"fade-up 0.5s ease-out both",
-              position:"relative", overflow:"hidden",
-            }}>
+            <div style={{ background:C.card, border:`1px solid ${C.borderHover}`, borderRadius:"22px", padding:"52px 40px", textAlign:"center", maxWidth:560, animation:"fade-up 0.5s ease-out both", position:"relative", overflow:"hidden" }}>
               <div style={{ position:"absolute", top:0, left:"50%", transform:"translateX(-50%)", width:"50%", height:"2px", background:`linear-gradient(90deg, transparent, ${C.amber}, transparent)` }} />
-              {/* Decorative rings behind icon */}
               <div style={{ position:"relative", width:80, height:80, margin:"0 auto 24px" }}>
                 {[80,60,40].map(s => (
                   <div key={s} style={{ position:"absolute", top:"50%", left:"50%", width:s, height:s, transform:"translate(-50%,-50%)", borderRadius:"50%", border:`1px solid rgba(245,166,35,${0.08*(80/s)})` }} />
@@ -531,12 +466,14 @@ export default function Dashboard() {
                   <BarChart2 size={26} color={C.amber} />
                 </div>
               </div>
-              <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"22px", marginBottom:"10px" }}>Forecast Submitted</h2>
+              <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"22px", marginBottom:"10px" }}>
+                {mode==="instant" ? "Prediction Submitted" : "Forecast Submitted"}
+              </h2>
               <p style={{ color:C.muted, fontSize:"15px", lineHeight:1.75, marginBottom:"30px" }}>
                 Your inputs have been sent to the model. Results will appear here once the backend is connected.
               </p>
               <div style={{ display:"flex", gap:"12px", justifyContent:"center", flexWrap:"wrap" }}>
-                <button className="dash-btn" onClick={reset}>New Forecast</button>
+                <button className="dash-btn" onClick={reset}>New Prediction</button>
                 <button onClick={reset} style={{ background:"transparent", border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 24px", color:C.cream, fontFamily:"'Outfit',sans-serif", fontSize:"15px", cursor:"pointer", transition:"all 0.2s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor=C.borderHover; e.currentTarget.style.color=C.amber; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor=C.border;      e.currentTarget.style.color=C.cream; }}
