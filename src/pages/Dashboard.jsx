@@ -68,7 +68,8 @@ export default function Dashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    console.log("SUBMIT CLICKED");
+    console.log("Mode:", mode);
     try {
       if (mode === "instant") {
         const response = await fetch("http://127.0.0.1:8000/predict", {
@@ -99,6 +100,7 @@ export default function Dashboard() {
      }
 
       if (mode === "forecast") {
+        console.log("Calling forecast API...");
         const response = await fetch("http://127.0.0.1:8000/forecast-location", {
           method: "POST",
           headers: {
@@ -111,14 +113,14 @@ export default function Dashboard() {
         });
 
         const data = await response.json();
-
+        console.log("Response:", data);
         setForecastData(data.forecast);
       }
-
+      console.log("Submitted state triggered");
       setSubmitted(true);
 
     } catch (error) {
-      console.error(error);
+      console.error("ERROR OCCURRED:",error);
     }
   };
 
