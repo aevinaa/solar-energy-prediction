@@ -24,7 +24,6 @@ const C = {
 
 const isFirstVisit = () => !localStorage.getItem("si_visited");
 const markVisited  = ()  =>  localStorage.setItem("si_visited", "1");
-const FAKE_USER = { name: "Dhiya Sampath Kumar", email: "dhiya@example.com", initials: "DS" };
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -36,7 +35,10 @@ export default function Dashboard() {
   const [efficiency, setEfficiency] = useState(null);
   const [forecastData, setForecastData] = useState(null);
   const profileRef = useRef(null);
-
+  const name = localStorage.getItem("name");
+  const email = localStorage.getItem("email");
+  const userName = name?.split(" ")[0] || "User";
+  const initials = userName[0]?.toUpperCase();
   // Mode 1 — instant prediction fields
   const [instantForm, setInstantForm] = useState({
     radiation:     "",
@@ -290,16 +292,16 @@ export default function Dashboard() {
               onMouseEnter={e => { e.currentTarget.style.borderColor=C.borderHover; e.currentTarget.style.background="rgba(245,166,35,0.10)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor=C.border;      e.currentTarget.style.background="rgba(245,166,35,0.06)"; }}
             >
-              <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg, ${C.amber}, ${C.orange})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", fontWeight:700, color:C.bg }}>{FAKE_USER.initials}</div>
-              <span style={{ fontSize:"14px", fontWeight:500 }}>{FAKE_USER.name.split(" ")[0]}</span>
+              <div style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg, ${C.amber}, ${C.orange})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", fontWeight:700, color:C.bg }}>{initials}</div>
+              <span style={{ fontSize:"14px", fontWeight:500 }}>{userName}</span>
               <ChevronDown size={14} color={C.muted} style={{ transition:"transform 0.2s", transform:profileOpen?"rotate(180deg)":"rotate(0deg)" }} />
             </button>
 
             {profileOpen && (
               <div className="profile-dropdown">
                 <div style={{ padding:"10px 14px 14px", borderBottom:`1px solid ${C.border}`, marginBottom:"6px" }}>
-                  <div style={{ fontSize:"14px", fontWeight:600, color:C.cream }}>{FAKE_USER.name}</div>
-                  <div style={{ fontSize:"12px", color:C.mutedDark, marginTop:"2px" }}>{FAKE_USER.email}</div>
+                  <div style={{ fontSize:"14px", fontWeight:600, color:C.cream }}>{userName}</div>
+                  <div style={{ fontSize:"12px", color:C.mutedDark, marginTop:"2px" }}>{Email}</div>
                 </div>
                 <button className="drop-item"><User size={15} />My Account</button>
                 <button className="drop-item"><BarChart2 size={15} />My Predictions</button>
@@ -321,8 +323,8 @@ export default function Dashboard() {
             </div>
             <h1 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"clamp(28px, 4vw, 52px)", lineHeight:1.08, marginBottom:"14px" }}>
               {firstTime
-                ? <>{`Let's get you started,`}<br /><span style={{ color:C.amber }}>{FAKE_USER.name.split(" ")[0]}.</span></>
-                : <>Your predictions,<br /><span style={{ color:C.amber }}>{FAKE_USER.name.split(" ")[0]}.</span></>
+                ? <>{`Let's get you started,`}<br /><span style={{ color:C.amber }}>{userName}.</span></>
+                : <>Your predictions,<br /><span style={{ color:C.amber }}>{userName}.</span></>
               }
             </h1>
             <p style={{ color:C.muted, fontSize:"16px", maxWidth:480, lineHeight:1.75 }}>
@@ -519,7 +521,7 @@ export default function Dashboard() {
                   <BarChart2 size={26} color={C.amber} />
                 </div>
               </div>
-              {mode === "instant" && prediction && (
+              {mode === "instant" && prediction !== null && (
                 <>
                   <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"22px", marginBottom:"10px" }}>
                     Predicted Power: {prediction.toFixed(2)} kW

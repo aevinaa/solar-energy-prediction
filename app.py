@@ -7,8 +7,16 @@ import numpy as np
 import sqlite3
 import requests
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 load_dotenv()
 
 # -----------------------------
@@ -16,7 +24,12 @@ load_dotenv()
 # -----------------------------
 
 class User(BaseModel):
-    username: str
+    name: str
+    email: str
+    password: str
+    
+class LoginUser(BaseModel):
+    email: str
     password: str
 
 class InputData(BaseModel):
@@ -137,14 +150,14 @@ def get_predictions(user_id: int):
 
 @app.post("/signup")
 def signup(user: User):
-
+    print(user)
     conn = sqlite3.connect("solar.db")
     cursor = conn.cursor()
 
     cursor.execute("""
-    INSERT INTO users (username, password)
-    VALUES (?, ?)
-    """, (user.username, user.password))
+    INSERT INTO users (name, email, password)
+    VALUES (?, ?, ?)
+    """, (user.name, user.email, user.password))
 
     conn.commit()
     conn.close()
@@ -156,20 +169,20 @@ def signup(user: User):
 # -----------------------------
 
 @app.post("/login")
-def login(user: User):
+def login(user: LoginUser):
 
     conn = sqlite3.connect("solar.db")
     cursor = conn.cursor()
 
     cursor.execute("""
-    SELECT * FROM users WHERE username=? AND password=?
-    """, (user.username, user.password))
+    SELECT * FROM users WHERE email=? AND password=?
+    """, (user.email, user.password))
 
     result = cursor.fetchone()
     conn.close()
 
     if result:
-        return {"message": "Login successful", "user_id": result[0]}
+        return {"message": "Login successful", "user_id": result[0], "name": result[1], "email": result[2]}
     else:
         return {"message": "Invalid credentials"}
 

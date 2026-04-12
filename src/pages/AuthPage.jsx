@@ -14,8 +14,9 @@
  * ─────────────────────────────────────────────────────
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sun, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import "./AuthPage.css";
 
 // Same colour tokens as LandingPage — keeps everything coordinated
@@ -33,6 +34,9 @@ const C = {
 };
 
 export default function AuthPage() {
+  useEffect(() => {
+    console.log("Component mounted");
+  }, []);
   // "login" or "signup" — controls which form is shown
   const [mode, setMode] = useState("login");
 
@@ -45,6 +49,8 @@ export default function AuthPage() {
   const [googleForm, setGoogleForm] = useState({
     googleEmail: "",
   });
+
+  const navigate = useNavigate();
 
   // Form field state
   const [form, setForm] = useState({
@@ -71,14 +77,60 @@ export default function AuthPage() {
   };
 
   // Placeholder submit — wire up your backend here later
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (mode === "signup" && form.password !== form.confirm) {
-      alert("Passwords don't match!");
-      return;
+    console.log("SUBMIT CLICKED");
+
+    try {
+      if (mode === "login") {
+        const response = await fetch("http://127.0.0.1:8000/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            email: form.email, 
+            password: form.password
+          })
+        });
+
+        const data = await response.json();
+        console.log("LOGIN RESPONSE:", data);
+
+        if (data.user_id) {
+          localStorage.setItem("user_id", data.user_id);
+          localStorage.setItem("name", data.name);
+          localStorage.setItem("email", data.email);
+          console.log("Saved name:", data.name);
+          console.log("Saved email:", data.email);
+          navigate("/dashboard");
+
+          //window.location.href = "/dashboard";
+        } else {
+          alert("Invalid credentials");
+        }
+      }
+
+      else {
+        const response = await fetch("http://127.0.0.1:8000/signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            password: form.password
+          })
+        });
+
+        alert("Signup successful!");
+        setMode("login");
+      }
+
+    } catch (err) {
+      console.error(err);
     }
-    console.log("Form submitted:", form);
-    window.location.href = "/dashboard";
   };
 
   return (
@@ -229,10 +281,12 @@ export default function AuthPage() {
           {/* ── Tab toggle ── */}
           <div className="auth-tab-bar">
             <button
+              type="button"
               className={`auth-tab${mode === "login"  ? " active" : ""}`}
               onClick={() => switchMode("login")}
             >Log In</button>
             <button
+              type="button"
               className={`auth-tab${mode === "signup" ? " active" : ""}`}
               onClick={() => switchMode("signup")}
             >Sign Up</button>
@@ -361,7 +415,7 @@ export default function AuthPage() {
             )}
 
             {/* Submit */}
-            <button type="submit" className="auth-btn" style={{ marginTop:"4px" }}>
+            <button type="submit" className="auth-btn" onClick={() => console.log("BUTTON CLICKED")} style={{ marginTop:"4px" }}>
               {mode === "login" ? "Log In" : "Create Account"}
             </button>
 
