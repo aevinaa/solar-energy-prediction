@@ -32,6 +32,9 @@ export default function Dashboard() {
   const [mode,        setMode]        = useState(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [submitted,   setSubmitted]   = useState(false);
+  const [prediction, setPrediction] = useState(null);
+  const [efficiency, setEfficiency] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
   const profileRef = useRef(null);
 
   // Mode 1 — instant prediction fields
@@ -63,12 +66,60 @@ export default function Dashboard() {
     if (firstTime) { markVisited(); setFirstTime(false); }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: connect to backend API
-    // Mode 1: POST instantForm to /api/predict-instant
-    // Mode 2: POST forecastForm to /api/predict-forecast
-    setSubmitted(true);
+
+    try {
+      if (mode === "instant") {
+        const response = await fetch("http://127.0.0.1:8000/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            user_id: 1,
+            irradiation: parseFloat(instantForm.radiation),
+            ambient_temperature: parseFloat(instantForm.temperature),
+            module_temperature: parseFloat(instantForm.temperature) + 5,
+            hour: parseInt(instantForm.time.split(":")[0]),
+            day: 15,
+            month: 5,
+            day_of_week: 2,
+            is_daylight: 1,
+            plant: 1,
+            source_key: 5,
+            prev_power: parseFloat(instantForm.previousPower)
+          })
+        });
+
+        const data = await response.json();
+
+        setPrediction(data.predicted_power);
+        setEfficiency(data.efficiency);
+     }
+
+      if (mode === "forecast") {
+        const response = await fetch("http://127.0.0.1:8000/forecast-location", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            location: forecastForm.location,
+            plant_size: parseFloat(forecastForm.plantSize)
+          })
+        });
+
+        const data = await response.json();
+
+        setForecastData(data.forecast);
+      }
+
+      setSubmitted(true);
+
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const reset = () => {
@@ -466,12 +517,31 @@ export default function Dashboard() {
                   <BarChart2 size={26} color={C.amber} />
                 </div>
               </div>
-              <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"22px", marginBottom:"10px" }}>
-                {mode==="instant" ? "Prediction Submitted" : "Forecast Submitted"}
-              </h2>
-              <p style={{ color:C.muted, fontSize:"15px", lineHeight:1.75, marginBottom:"30px" }}>
-                Your inputs have been sent to the model. Results will appear here once the backend is connected.
-              </p>
+              {mode === "instant" && prediction && (
+                <>
+                  <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"22px", marginBottom:"10px" }}>
+                    Predicted Power: {prediction.toFixed(2)} kW
+                  </h2>
+                  <p style={{ color:C.muted, fontSize:"15px", lineHeight:1.75, marginBottom:"30px" }}>
+                    Efficiency: {efficiency.toFixed(2)}
+                  </p>
+                </>
+              )}
+
+              {mode === "forecast" && forecastData && (
+                <>
+                  <h2 style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"22px", marginBottom:"10px" }}>
+                    Forecast Results
+                  </h2>
+                  <div style={{ color:C.muted, fontSize:"14px", marginBottom:"30px" }}>
+                    {forecastData.map((item, i) => (
+                      <p key={i}>
+                        {item.time} → {item.predicted_power} kW
+                      </p>
+                    ))}
+                  </div>
+                </>
+              )}
               <div style={{ display:"flex", gap:"12px", justifyContent:"center", flexWrap:"wrap" }}>
                 <button className="dash-btn" onClick={reset}>New Prediction</button>
                 <button onClick={reset} style={{ background:"transparent", border:`1px solid ${C.border}`, borderRadius:"12px", padding:"14px 24px", color:C.cream, fontFamily:"'Outfit',sans-serif", fontSize:"15px", cursor:"pointer", transition:"all 0.2s" }}
