@@ -1,0 +1,157 @@
+/* ── Pulsing sun rings (reused from LandingPage) ── */
+@keyframes pulse-ring {
+  0%   { opacity: 0.55; transform: translate(-50%, -50%) scale(0.25); }
+  60%  { opacity: 0.15; }
+  100% { opacity: 0;    transform: translate(-50%, -50%) scale(1);    }
+}
+@keyframes auth-fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+/* Card entrance */
+.auth-card {
+  animation: auth-fade-in 0.55s ease-out both;
+}
+
+/* Input field */
+.auth-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(245,166,35,0.18);
+  border-radius: 12px;
+  padding: 13px 16px;
+  color: #F0ECD8;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.22s, background 0.22s;
+}
+.auth-input::placeholder { color: #6E6A5A; }
+.auth-input:focus {
+  border-color: rgba(245,166,35,0.55);
+  background: rgba(245,166,35,0.04);
+}
+
+/* Password wrapper — so the eye icon sits inside */
+.auth-input-wrap {
+  position: relative;
+  width: 100%;
+}
+.auth-input-wrap .auth-input {
+  padding-right: 46px;
+}
+.eye-btn {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: #6E6A5A;
+  transition: color 0.2s;
+}
+.eye-btn:hover { color: #F5A623; }
+
+/* Primary submit button */
+.auth-btn {
+  width: 100%;
+  background: #F5A623;
+  color: #0A0A07;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.22s, transform 0.18s;
+}
+.auth-btn:hover { background: #FFD07A; transform: translateY(-2px); }
+
+/* Tab toggle (Login / Sign Up) */
+.auth-tab-bar {
+  display: flex;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(245,166,35,0.12);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 32px;
+}
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6E6A5A;
+  cursor: pointer;
+  transition: all 0.22s;
+}
+.auth-tab.active {
+  background: #F5A623;
+  color: #0A0A07;
+}
+
+/* Divider "or continue with" */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  color: #F0ECD8;
+  font-size: 13px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(245,166,35,0.12);
+}
+
+/* Google button */
+.auth-google-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(245,166,35,0.18);
+  border-radius: 12px;
+  padding: 13px;
+  color: #F0ECD8;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: border-color 0.22s, background 0.22s;
+}
+.auth-google-btn:hover {
+  border-color: rgba(245,166,35,0.35);
+  background: rgba(245,166,35,0.04);
+}
+
+/* Checkbox */
+.auth-checkbox {
+  accent-color: #F5A623;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card { animation: none; }
+}
