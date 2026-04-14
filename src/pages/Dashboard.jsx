@@ -50,7 +50,7 @@ export default function Dashboard() {
 
   // ── User info from localStorage ───────────────────────────
   const name     = localStorage.getItem("name")  || "User";
-  const userName = name.split(" ")[0];
+  const userName = name ? name.split(" ")[0] : "User";
 
   // ── Form state ────────────────────────────────────────────
   const [instantForm, setInstantForm] = useState({
@@ -74,14 +74,19 @@ export default function Dashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("SUBMIT CLICKED — Mode:", mode);
-
+    const user_id = localStorage.getItem("user_id");
+    if (!user_id) {
+      alert("Please login again");
+      navigate("/login");
+      return;
+    }
     try {
       if (mode === "instant") {
         const response = await fetch("http://127.0.0.1:8000/predict", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id:             parseInt(localStorage.getItem("user_id")) || 1,
+            user_id:             parseInt(user_id),
             irradiation:         parseFloat(instantForm.radiation),
             ambient_temperature: parseFloat(instantForm.temperature),
             module_temperature:  parseFloat(instantForm.temperature) + 5,
@@ -95,6 +100,12 @@ export default function Dashboard() {
             prev_power:          parseFloat(instantForm.previousPower),
           }),
         });
+        if (!response.ok) {
+          const err = await response.json();
+          console.log("ERROR:", err);
+          alert("Prediction failed");
+          return;
+        }
         const data = await response.json();
         setPrediction(data.predicted_power);
         setEfficiency(data.efficiency);
@@ -105,6 +116,7 @@ export default function Dashboard() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            user_id: parseInt(localStorage.getItem("user_id")),
             location:   forecastForm.location,
             plant_size: parseFloat(forecastForm.plantSize),
           }),

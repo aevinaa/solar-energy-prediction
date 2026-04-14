@@ -94,10 +94,17 @@ export default function AuthPage() {
           })
         });
 
+        if (!response.ok) {
+          const err = await response.json();
+          console.log("LOGIN ERROR:", err);
+          alert("Login failed");
+          return;
+        }
+
         const data = await response.json();
         console.log("LOGIN RESPONSE:", data);
 
-        if (data.user_id) {
+        if (data.user_id!== undefined) {
           localStorage.setItem("user_id", data.user_id);
           localStorage.setItem("name", data.name);
           localStorage.setItem("email", data.email);

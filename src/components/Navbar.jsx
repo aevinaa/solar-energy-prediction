@@ -29,7 +29,8 @@ export default function Navbar() {
   // Read user info from localStorage (set by backend on login)
   const name  = localStorage.getItem("name")  || "User";
   const email = localStorage.getItem("email") || "";
-  const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const safeName = name || "User";
+  const initials = safeName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
   const NAV = [
     { label: "Dashboard", path: "/dashboard" },

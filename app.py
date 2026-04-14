@@ -10,6 +10,7 @@ from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -17,7 +18,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 load_dotenv()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "solar.db")
 
 # -----------------------------
 # MODELS
@@ -46,8 +51,8 @@ class InputData(BaseModel):
     source_key: int
     prev_power: float
 
-# NEW (IMPORTANT)
 class ForecastRequest(BaseModel):
+    user_id: int
     location: str
     plant_size: float
 
@@ -66,7 +71,7 @@ def home():
     return {"message": "SunInsight API Running 🚀"}
 
 # -----------------------------
-# PREDICT
+# PREDICT (INSTANT)
 # -----------------------------
 
 @app.post("/predict")
@@ -87,26 +92,25 @@ def predict(data: InputData):
     ]])
 
     prediction = model.predict(input_array)[0]
+
+    if prediction < 0:
+        prediction = 0
+
     efficiency = prediction / (data.irradiation + 1)
 
-    # SAVE TO DATABASE
-    conn = sqlite3.connect("solar.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    INSERT INTO predictions (user_id, irradiation, ambient_temperature, module_temperature, hour, predicted_power)
-    VALUES (?, ?, ?, ?, ?, ?)
-    """, (
-        data.user_id,
-        data.irradiation,
-        data.ambient_temperature,
-        data.module_temperature,
-        data.hour,
-        float(prediction)
-    ))
-
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_PATH, timeout=10) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        INSERT INTO predictions (user_id, irradiation, ambient_temperature, module_temperature, hour, predicted_power)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            data.user_id,
+            data.irradiation,
+            data.ambient_temperature,
+            data.module_temperature,
+            data.hour,
+            float(prediction)
+        ))
 
     return {
         "predicted_power": round(float(prediction), 2),
@@ -114,32 +118,25 @@ def predict(data: InputData):
     }
 
 # -----------------------------
-# GET PREDICTIONS
+# GET HISTORY
 # -----------------------------
 
 @app.get("/predictions/{user_id}")
 def get_predictions(user_id: int):
 
-    conn = sqlite3.connect("solar.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT * FROM predictions WHERE user_id=?
-    """, (user_id,))
-
-    rows = cursor.fetchall()
-    conn.close()
+    with sqlite3.connect("solar.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM predictions WHERE user_id=?", (user_id,))
+        rows = cursor.fetchall()
 
     results = []
     for row in rows:
         results.append({
-            "id": row[0],
-            "user_id": row[1],
-            "irradiation": row[2],
-            "ambient_temperature": row[3],
-            "module_temperature": row[4],
-            "hour": row[5],
-            "predicted_power": row[6]
+            "id": int(row[0]),
+            "avg_irradiation": float(row[2]) if row[2] is not None else None,
+            "avg_temp": float(row[3]) if row[3] is not None else None,
+            "predicted_power": float(row[6]) if row[6] is not None else None,
+            "date": row[7]
         })
 
     return {"data": results}
@@ -150,17 +147,12 @@ def get_predictions(user_id: int):
 
 @app.post("/signup")
 def signup(user: User):
-    print(user)
-    conn = sqlite3.connect("solar.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    INSERT INTO users (name, email, password)
-    VALUES (?, ?, ?)
-    """, (user.name, user.email, user.password))
-
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        INSERT INTO users (name, email, password)
+        VALUES (?, ?, ?)
+        """, (user.name, user.email, user.password))
 
     return {"message": "User created successfully"}
 
@@ -171,71 +163,63 @@ def signup(user: User):
 @app.post("/login")
 def login(user: LoginUser):
 
-    conn = sqlite3.connect("solar.db")
-    cursor = conn.cursor()
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+        SELECT * FROM users WHERE email=? AND password=?
+        """, (user.email, user.password))
 
-    cursor.execute("""
-    SELECT * FROM users WHERE email=? AND password=?
-    """, (user.email, user.password))
-
-    result = cursor.fetchone()
-    conn.close()
+        result = cursor.fetchone()
 
     if result:
-        return {"message": "Login successful", "user_id": result[0], "name": result[1], "email": result[2]}
+        return {
+            "message": "Login successful",
+            "user_id": result[0],
+            "name": result[1],
+            "email": result[2]
+        }
     else:
         return {"message": "Invalid credentials"}
 
 # -----------------------------
-# FORECAST LOCATION (REAL SYSTEM)
+# FORECAST (DAILY TOTAL)
 # -----------------------------
 
 @app.post("/forecast-location")
 def forecast_location(data: ForecastRequest):
 
-    location = data.location
-    plant_size = data.plant_size
-
     API_KEY = os.getenv("API_KEY")
 
-    # STEP 1: GEO API
-    geo_url = f"https://api.openweathermap.org/geo/1.0/direct?q={location}&limit=1&appid={API_KEY}"
+    # GEO API
+    geo_url = f"https://api.openweathermap.org/geo/1.0/direct?q={data.location}&limit=1&appid={API_KEY}"
     geo_res = requests.get(geo_url).json()
 
-    print("GEO RESPONSE:", geo_res)
-
-    if not isinstance(geo_res, list):
-        return {"error": "Geo API failed", "details": geo_res}
-
-    if len(geo_res) == 0:
-        return {"error": "Location not found"}
+    if not isinstance(geo_res, list) or len(geo_res) == 0:
+        return {"error": "Invalid location"}
 
     lat = geo_res[0]['lat']
     lon = geo_res[0]['lon']
 
-    # STEP 2: WEATHER API
+    # WEATHER API
     weather_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={API_KEY}"
     weather_data = requests.get(weather_url).json()
 
     if "list" not in weather_data:
         return {"error": "Weather API failed", "details": weather_data}
 
-    daily_results = {}
+    daily_data = {}
     prev_power = 400
 
     for entry in weather_data['list']:
 
         dt = datetime.fromtimestamp(entry['dt'])
-        date_key = dt.date()
+        date = dt.date()
 
         temp = entry['main']['temp'] - 273.15
         cloud = entry['clouds']['all'] / 100
         irradiation = max((1 - cloud) * 1000, 0)
 
         hour = dt.hour
-        day = dt.day
-        month = dt.month
-        day_of_week = dt.weekday()
         is_daylight = 1 if 6 <= hour <= 18 else 0
 
         input_array = [[
@@ -244,9 +228,9 @@ def forecast_location(data: ForecastRequest):
             temp,
             temp + 5,
             hour,
-            day,
-            month,
-            day_of_week,
+            dt.day,
+            dt.month,
+            dt.weekday(),
             is_daylight,
             1,
             5
@@ -254,72 +238,49 @@ def forecast_location(data: ForecastRequest):
 
         prediction = model.predict(input_array)[0]
 
-        # NIGHT FIX
-        if is_daylight == 0:
+        if prediction < 0 or is_daylight == 0:
             prediction = 0
 
-        # Safety
-        if prediction is None or np.isnan(prediction):
-            prediction = 0
+        scaled_power = prediction * (data.plant_size / 5)
 
-        scaled_power = prediction * (plant_size / 5)
-
-        if scaled_power is None or np.isnan(scaled_power):
+        if scaled_power < 0:
             scaled_power = 0
 
-        if date_key not in daily_results:
-            daily_results[date_key] = scaled_power
-        else:
-            daily_results[date_key] = max(daily_results[date_key], scaled_power)
+        if date not in daily_data:
+            daily_data[date] = {
+                "power": [],
+                "temp": [],
+                "irradiation": []
+            }
+
+        daily_data[date]["power"].append(float(scaled_power))
+        daily_data[date]["temp"].append(float(temp))
+        daily_data[date]["irradiation"].append(float(irradiation))
 
         prev_power = prediction
 
     results = []
-    for date, power in daily_results.items():
-        results.append({
-            "date": str(date),
-            "predicted_power": round(float(power), 2)
-        })
-    
-    conn = sqlite3.connect("solar.db")
-    cursor = conn.cursor()
 
-    cursor.execute("""
-    INSERT INTO forecasts (user_id, location, date, predicted_power)
-    VALUES (?, ?, ?, ?)
-    """, (
-        1,  # temporary user_id or from auth
-        location,
-        str(date_key),
-        float(scaled_power)
-    ))
+    with sqlite3.connect(DB_PATH, timeout=10) as conn:
+        cursor = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        for date, values in daily_data.items():
+
+            daily_total = float(sum(values["power"]))
+            avg_temp = float(sum(values["temp"]) / len(values["temp"]))
+            avg_irr = float(sum(values["irradiation"]) / len(values["irradiation"]))
+
+            results.append({
+                "date": str(date),
+                "predicted_power": round(daily_total, 2),
+                "avg_temp": round(avg_temp, 2),
+                "avg_irradiation": round(avg_irr, 2)
+            })
+            cursor.execute("""
+                INSERT INTO predictions 
+                (user_id, irradiation, ambient_temperature, module_temperature, hour, predicted_power, date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (data.user_id, avg_irr, avg_temp, avg_temp + 5, 0, daily_total, str(date)
+            ))
+
     return {"forecast": results}
-
-@app.get("/forecasts/{user_id}")
-def get_forecasts(user_id: int):
-
-    conn = sqlite3.connect("solar.db")
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    SELECT location, date, predicted_power 
-    FROM forecasts 
-    WHERE user_id=?
-    """, (user_id,))
-
-    rows = cursor.fetchall()
-    conn.close()
-
-    results = []
-    for row in rows:
-        results.append({
-            "location": row[0],
-            "date": row[1],
-            "predicted_power": row[2]
-        })
-
-    return {"data": results}
-

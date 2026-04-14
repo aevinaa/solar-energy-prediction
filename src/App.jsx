@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
-import AuthPage    from './pages/authpage'
+import AuthPage    from './pages/AuthPage'
 import Dashboard   from './pages/Dashboard'
 import History     from './pages/History'
 import Settings    from './pages/Settings'
