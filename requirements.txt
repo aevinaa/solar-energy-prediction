@@ -2,3 +2,7 @@ fastapi
 uvicorn[standard]
 requests
 python-dotenv
+joblib
+scikit-learn
+numpy
+pandas
