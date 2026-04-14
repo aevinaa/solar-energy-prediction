@@ -1,3 +1,13 @@
+/**
+ * Dashboard.jsx — MERGED VERSION
+ *
+ * Keeps:
+ *  ✅ Teammate's real API calls (/predict and /forecast-location)
+ *  ✅ Teammate's prediction/efficiency/forecastData states
+ *  ✅ Teammate's results display (predicted power, efficiency, forecast)
+ *  ✅ Our shared Navbar component (removed duplicate inline navbar)
+ *  ✅ Our UI/UX design
+ */
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
