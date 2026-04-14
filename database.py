@@ -1,6 +1,9 @@
 import sqlite3
+import os
 
-conn = sqlite3.connect("solar.db")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "solar.db")
+conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
 # USERS TABLE
@@ -22,7 +25,8 @@ CREATE TABLE IF NOT EXISTS predictions (
     ambient_temperature REAL,
     module_temperature REAL,
     hour INTEGER,
-    predicted_power REAL
+    predicted_power REAL,
+    date TEXT
 )
 """)
 
