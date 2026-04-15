@@ -83,7 +83,7 @@ export default function AuthPage() {
 
     try {
       if (mode === "login") {
-        const response = await fetch("http://solar-energy-prediction-ny8f.onrender.com/login", {
+        const response = await fetch("https://solar-energy-prediction-ny8f.onrender.com/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -119,7 +119,7 @@ export default function AuthPage() {
       }
 
       else {
-        const response = await fetch("http://solar-energy-prediction-ny8f.onrender.com/signup", {
+        const response = await fetch("https://solar-energy-prediction-ny8f.onrender.com/signup", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

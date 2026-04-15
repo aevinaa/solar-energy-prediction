@@ -30,7 +30,7 @@ export default function History() {
       return;
     }
 
-    fetch(`http://solar-energy-prediction-ny8f.onrender.com/predictions/${userId}`)
+    fetch(`https://solar-energy-prediction-ny8f.onrender.com/predictions/${userId}`)
       .then(res => {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         return res.json();

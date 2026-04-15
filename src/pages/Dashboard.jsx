@@ -82,7 +82,7 @@ export default function Dashboard() {
     }
     try {
       if (mode === "instant") {
-        const response = await fetch("http://solar-energy-prediction-ny8f.onrender.com/predict", {
+        const response = await fetch("https://solar-energy-prediction-ny8f.onrender.com/predict", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -112,7 +112,7 @@ export default function Dashboard() {
       }
 
       if (mode === "forecast") {
-        const response = await fetch("http://solar-energy-prediction-ny8f.onrender.com/forecast-location", {
+        const response = await fetch("https://solar-energy-prediction-ny8f.onrender.com/forecast-location", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
