@@ -13,7 +13,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://solar-energy-prediction-git-main-aevinaas-projects.vercel.app"],  
+    allow_origins=["https://solar-energy-prediction-psi.vercel.app/"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
