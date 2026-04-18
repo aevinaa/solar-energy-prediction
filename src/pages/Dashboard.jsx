@@ -2,14 +2,16 @@
  * Dashboard.jsx — MERGED VERSION
  *
  * Keeps:
- *  ✅ Teammate's real API calls (/predict and /forecast-location)
+ *  Our shared Navbar component (removed duplicate inline navbar)
+ *  ✅ ✅ Teammate's real API calls (/predict and /forecast-location)
  *  ✅ Teammate's prediction/efficiency/forecastData states
  *  ✅ Teammate's results display (predicted power, efficiency, forecast)
- *  ✅ Our shared Navbar component (removed duplicate inline navbar)
  *  ✅ Our UI/UX design
  */
 
 import { useState } from "react";
+// Use API URL from environment variable
+const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 import { useNavigate } from "react-router-dom";
 import {
   Sun, Zap, BarChart2, ArrowRight,
@@ -54,7 +56,7 @@ export default function Dashboard() {
 
   // ── Form state ────────────────────────────────────────────
   const [instantForm, setInstantForm] = useState({
-    radiation:"", temperature:"", time:"", previousPower:"",
+    radiation:"", temperature:"", time:"", previousPower:"", plantSize:"",
   });
   const [forecastForm, setForecastForm] = useState({
     location:"", plantSize:"",
@@ -77,7 +79,7 @@ export default function Dashboard() {
 
     try {
       if (mode === "instant") {
-        const response = await fetch("http://127.0.0.1:8000/predict", {
+        const response = await fetch(`${API_URL}/predict`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -90,7 +92,7 @@ export default function Dashboard() {
             month:               5,
             day_of_week:         2,
             is_daylight:         1,
-            plant:               1,
+            plant:               parseFloat(instantForm.plantSize) || 1,
             source_key:          5,
             prev_power:          parseFloat(instantForm.previousPower),
           }),
@@ -101,7 +103,7 @@ export default function Dashboard() {
       }
 
       if (mode === "forecast") {
-        const response = await fetch("http://127.0.0.1:8000/forecast-location", {
+        const response = await fetch(`${API_URL}/forecast-location`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -128,7 +130,7 @@ export default function Dashboard() {
     setPrediction(null);
     setEfficiency(null);
     setForecastData(null);
-    setInstantForm({ radiation:"", temperature:"", time:"", previousPower:"" });
+    setInstantForm({ radiation:"", temperature:"", time:"", previousPower:"", plantSize:"" });
     setForecastForm({ location:"", plantSize:"" });
   };
 
@@ -341,6 +343,13 @@ export default function Dashboard() {
                             <div style={{ position:"relative" }}>
                               <Zap size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
                               <input className="dash-input" style={{ paddingLeft:"38px" }} type="number" step="0.01" placeholder="e.g. 3.2" value={instantForm.previousPower} onChange={e => setInstantForm(p=>({...p,previousPower:e.target.value}))} required />
+                            </div>
+                          </div>
+                          <div>
+                            <label style={{ fontSize:"13px", fontWeight:500, color:C.muted, display:"block", marginBottom:"7px" }}>Plant Size (kW)</label>
+                            <div style={{ position:"relative" }}>
+                              <Zap size={15} color={C.mutedDark} style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }} />
+                              <input className="dash-input" style={{ paddingLeft:"38px" }} type="number" min="0.1" step="0.1" placeholder="e.g. 5.0" value={instantForm.plantSize} onChange={e => setInstantForm(p=>({...p,plantSize:e.target.value}))} required />
                             </div>
                           </div>
                         </div>
