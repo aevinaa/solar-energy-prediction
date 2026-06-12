@@ -294,8 +294,12 @@ def forecast_location(data: ForecastRequest):
     daily_meta: dict = {}
     prev_power = 0.0
 
-    for entry in weather_data['list']:
-        dt   = datetime.fromtimestamp(entry['dt'])
+    # OpenWeatherMap timestamps are UTC. city.timezone gives seconds offset for the location.
+    tz_offset = weather_data.get("city", {}).get("timezone", 19800)  # IST = +5:30 = 19800s default
+
+    for entry in weather_data["list"]:
+        # Convert UTC to local time using location's timezone offset
+        dt   = datetime.utcfromtimestamp(entry['dt'] + tz_offset)
         date = dt.date()
 
         temp_c     = entry['main']['temp'] - 273.15
