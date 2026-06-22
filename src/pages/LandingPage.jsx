@@ -273,7 +273,7 @@ export default function LandingPage() {
                     fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"22px",
                     background:`linear-gradient(135deg, ${C.amber}, ${C.orange})`,
                     WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text",
-                  }}>93% Forecast Accuracy</div>
+                  }}>95% Forecast Accuracy</div>
                   <div style={{ fontSize:"12px", color:C.muted, marginTop:"2px" }}>
                     measured against actual inverter output
                   </div>

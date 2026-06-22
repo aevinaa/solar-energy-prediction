@@ -215,12 +215,6 @@ export default function Dashboard() {
       <div className="dot-grid" />
       <div style={{ position:"fixed", top:"-10%", right:"-5%", width:700, height:700, borderRadius:"50%", background:"radial-gradient(circle, rgba(245,166,35,0.06) 0%, transparent 65%)", pointerEvents:"none", zIndex:0 }} />
       <div style={{ position:"fixed", bottom:"-5%", left:"-5%", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle, rgba(255,104,53,0.05) 0%, transparent 65%)", pointerEvents:"none", zIndex:0 }} />
-      <div style={{ position:"fixed", top:"8%", right:"3%", pointerEvents:"none", zIndex:0, opacity:0.7 }}>
-        {[60,100,140,180].map((r,i) => (
-          <div key={r} style={{ position:"absolute", top:"50%", left:"50%", width:r*2, height:r*2, transform:"translate(-50%,-50%)", borderRadius:"50%", border:`1px solid rgba(245,166,35,${0.10-i*0.018})`, animation:`grid-drift ${3+i*0.8}s ease-in-out infinite`, animationDelay:`${i*0.4}s` }} />
-        ))}
-        <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", width:28, height:28, borderRadius:"50%", background:"radial-gradient(circle at 40% 35%, #FFD966, #F5A623 55%, #D4631A)", boxShadow:"0 0 24px rgba(245,166,35,0.5)", animation:"pulse-soft 4s ease-in-out infinite" }} />
-      </div>
       <div style={{ position:"fixed", inset:0, pointerEvents:"none", zIndex:0, overflow:"hidden" }}>
         {[15,35,55,75].map((pct,i) => (
           <div key={i} style={{ position:"absolute", top:0, left:`${pct}%`, width:1, height:"100%", background:`linear-gradient(180deg, transparent, rgba(245,166,35,${0.04-i*0.005}), transparent)` }} />
